@@ -1,0 +1,3 @@
+[submodule "torch-suite"]
+	path = torch-suite
+	url = https://github.com/jabarragann/torch-suite
