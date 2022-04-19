@@ -33,3 +33,7 @@ pip install -e ./torch-suite/pytorch-checkpoint/
 ```
 pip3 install torch==1.11.0 torchvision torchaudio
 ```
+Make sure you don't commit changes in the .project_paths files
+```
+git update-index --skip-worktree deepgesture/.project_paths 
+```
