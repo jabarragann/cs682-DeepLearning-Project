@@ -14,12 +14,12 @@ git submodule update --init --recursive
 Then, make sure to update the data's paths in `deepgesture/.project_paths`.
 
 ## Step 2 (Install packages)
-### Option 1-Conda installation:
+**Option 1:**
 Create a new conda environment with the custom modules added
 ```
 conda env create -f environment.yml
 ```
-### Option 2-Pip installation:
+**Option 2:**
 Add custom modules via pip
 
 ```
