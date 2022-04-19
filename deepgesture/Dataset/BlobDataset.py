@@ -4,6 +4,7 @@ import os
 import pickle
 from typing import Tuple, List
 from torch.utils.data.dataloader import default_collate
+from deepgesture.config import Config
 
 
 class gestureBlobDataset:
@@ -91,3 +92,19 @@ class gestureBlobMultiDataset:
             return curr_tensor_tuple
         else:
             return None
+
+
+def main():
+    num_frames_per_blob = 25
+    spacing = 2
+    blobs_save_folder_path = Config.blobs_dir
+
+    blobs_folder_paths_list = [blobs_save_folder_path]
+    dataset = gestureBlobMultiDataset(blobs_folder_paths_list=blobs_folder_paths_list)
+    out = dataset.__getitem__(0)
+
+    print(f"Optical flow shape: {out[0].shape}")
+    print(f"Kinematics data shape: {out[1].shape}")
+
+if __name__ == "__main__":
+    main()
