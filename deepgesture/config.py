@@ -1,18 +1,24 @@
 from pathlib import Path
+import dotenv
+import os
 
-
+# Changes to config class
 class Config:
-
-    suturing_raw_dir = Path("/home/juan1995/research_juan/CS682/jigsaw-dataset/Suturing-Raw")
-    suturing_processed_dir = Path("/home/juan1995/research_juan/CS682/jigsaw-dataset/Suturing-Processed")
-
-    optical_flow_dir = suturing_processed_dir / "OpticalFlow"
+    # Load data paths as environment
+    module_root = Path(__file__)
+    dotenv.load_dotenv(os.path.join(module_root.parent, ".project_paths"))
+    suturing_raw_dir = Path(os.getenv("SUTURING_RAW_DIR"))
+    suturing_processed_dir = Path(os.getenv("SUTURING_PROCESSED_DIR"))
+    # Raw paths
+    suturing_transcriptions_dir = suturing_raw_dir / "transcriptions"
     suturing_videos_dir = suturing_raw_dir / "video"
     suturing_kinematics_dir = suturing_raw_dir / "kinematics/AllGestures"
+    # Processing paths
+    optical_flow_dir = suturing_processed_dir / "OpticalFlow"
+    blobs_dir = suturing_processed_dir / "blobs"
 
 
-if __name__ == "__main__":
-
+def check_paths():
     paths = [
         Config.suturing_raw_dir,
         Config.suturing_processed_dir,
@@ -27,3 +33,7 @@ if __name__ == "__main__":
         print(f"{p}: {p.exists()}")
 
     print(f"All path are correct: {all(checks)}")
+
+
+if __name__ == "__main__":
+    check_paths()
