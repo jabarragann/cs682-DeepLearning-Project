@@ -87,7 +87,7 @@ def size_collate_fn(batch: torch.Tensor) -> torch.Tensor:
 
 def main():
     optical_flow_folder_path = Config.optical_flow_dir
-    transcriptions_folder_path = Config.transcriptions_dir
+    transcriptions_folder_path = Config.suturing_transcriptions_dir
     num_frames_per_blob = 25
     blobs_save_folder_path = Config.blobs_dir
     spacing = 2
