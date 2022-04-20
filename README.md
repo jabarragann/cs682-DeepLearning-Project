@@ -23,7 +23,11 @@ conda env create -f environment.yml
 Add custom modules via pip
 
 ```
+pip install -r requirements.txt
 pip install -e .
+```
+Install submodules
+```
 pip install -e ./torch-suite/
 pip install -e ./torch-suite/pytorch-checkpoint/
 ```
