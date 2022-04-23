@@ -16,6 +16,8 @@ class Config:
     # Processing paths
     optical_flow_dir = suturing_processed_dir / "OpticalFlow"
     blobs_dir = suturing_processed_dir / "blobs"
+    # Models
+    trained_models_dir = suturing_processed_dir / "models"
 
 
 def check_paths():
