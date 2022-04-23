@@ -79,10 +79,13 @@ def train_encoder_decoder_multidata_embeddings(
         log_interval=2,
         end_of_epoch_metrics=[],  # ["train_acc", "valid_acc"]
     )
+    # checkpath = root / "best_checkpoint.pt"
     checkpath = root / "final_checkpoint.pt"
     if checkpath.exists():
         trainer_handler.load_checkpoint(checkpath)
-        print(f"resuming training from epoch {trainer_handler.init_epoch}")
+        print(
+            f"resuming training from epoch {trainer_handler.init_epoch}.\n Best metric: {trainer_handler.best_metric_to_opt:0.06f}"
+        )
 
     loss_batch_store = trainer_handler.train_loop()
 
