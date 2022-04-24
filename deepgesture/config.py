@@ -9,6 +9,9 @@ class Config:
     dotenv.load_dotenv(os.path.join(module_root.parent, ".project_paths"))
     suturing_raw_dir = Path(os.getenv("SUTURING_RAW_DIR"))
     suturing_processed_dir = Path(os.getenv("SUTURING_PROCESSED_DIR"))
+    # ------------------------------------------------------------
+    # Suturing paths
+    # ------------------------------------------------------------
     # Raw paths
     suturing_transcriptions_dir = suturing_raw_dir / "transcriptions"
     suturing_videos_dir = suturing_raw_dir / "video"
@@ -16,6 +19,11 @@ class Config:
     # Processing paths
     optical_flow_dir = suturing_processed_dir / "OpticalFlow"
     blobs_dir = suturing_processed_dir / "blobs"
+
+    # ------------------------------------------------------------
+    # Knot-tying paths
+    # ------------------------------------------------------------
+
     # Models
     trained_models_dir = suturing_processed_dir / "models"
 
