@@ -1,4 +1,4 @@
-name: dl_project_env 
+name: dl_project_env
 channels:
   - conda-forge
 dependencies:
