@@ -1,6 +1,7 @@
 /data
 deepgesture/.project_paths
-.project_paths
+#.project_paths
+.vs
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

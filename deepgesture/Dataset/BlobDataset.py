@@ -118,6 +118,7 @@ def main():
     dataloader = DataLoader(dataset=dataset, batch_size=128, shuffle=False, collate_fn=size_collate_fn)
 
     # Data accessing examples
+    print(f"Length of dataset: {len(dataset)}")
     out = dataset.__getitem__(8)
     print(f"Optical flow shape: {out[0].shape}")
     print(f"Kinematics data shape: {out[1].shape}")

@@ -58,21 +58,21 @@ class ConvNetStream(torch.nn.Module):
         # x = self.softmax(x)
         return x
 
+
 class KinematicStream(torch.nn.Module):
     def __init__(self, out_feature=2048) -> None:
         super().__init__()
 
-        self.linear1 = torch.nn.Linear(25*76, 4096)
+        self.linear1 = torch.nn.Linear(25 * 76, 4096)
         self.linear2 = torch.nn.Linear(4096, 1024)
         self.linear3 = torch.nn.Linear(1024, 128)
         self.linear4 = torch.nn.Linear(128, out_feature)
-        
+
         self.batch1 = torch.nn.BatchNorm1d(4096)
         self.batch2 = torch.nn.BatchNorm1d(1024)
 
         self.relu = torch.nn.ReLU()
-    
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x.view(-1, 25 * 76)
         x = self.linear1(x)
@@ -109,14 +109,14 @@ class OKNet(torch.nn.Module):
 
         x_net = self.linear2(x_net)
 
-        x_net = self.softmax(x_net)
+        # x_net = self.softmax(x_net)
         return x_net
 
 
 if __name__ == "__main__":
     # load dataset
     gesture_dataset = gestureBlobMultiDataset(blobs_folder_paths_list=[Config.blobs_dir])
-    dataloader = DataLoader(dataset=gesture_dataset, batch_size=128, shuffle=False, collate_fn=size_collate_fn)
+    dataloader = DataLoader(dataset=gesture_dataset, batch_size=24, shuffle=False, collate_fn=size_collate_fn)
 
     net = OKNet(out_features=2048)
     net = net.train()
@@ -131,3 +131,4 @@ if __name__ == "__main__":
     print(f"Output shape: {out.shape}")
     print(f"Optical flow: {opt.shape}")
     print(f"Kinematics:   {kin.shape}")
+    print(f"Network output\n {out[:5]}")

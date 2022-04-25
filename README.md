@@ -11,7 +11,7 @@ If repository was clone without recursive flag execute.
 ```
 git submodule update --init --recursive
 ```
-Then, make sure to update the data's paths in `deepgesture/.project_paths`.
+Then, make sure to create the file `deepgesture/.project_paths` with the paths to your data.
 ```
 SUTURING_RAW_DIR=<Path to jigsaw-raw data> #This path should contain all the raw data (video, gestures, kinematics).
 SUTURING_PROCESSED_DIR=<Path to processed data>
