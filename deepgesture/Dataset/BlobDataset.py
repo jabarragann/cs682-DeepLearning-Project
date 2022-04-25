@@ -1,9 +1,12 @@
+from pathlib import Path
+import sys
 import numpy as np
 import torch
 import os
 import pickle
 from typing import Tuple, List
 from torch.utils.data.dataloader import default_collate
+from torch.utils.data import DataLoader
 from deepgesture.config import Config
 
 
@@ -86,12 +89,23 @@ class gestureBlobMultiDataset:
 
         curr_file_path = self.blobs_folder_dict[path][adjusted_idx]
         curr_file_path = os.path.join(path, curr_file_path)
-        curr_tensor_tuple = pickle.load(open(curr_file_path, "rb"))
+
+        try:
+            curr_tensor_tuple = pickle.load(open(curr_file_path, "rb"))
+        except EOFError as e:
+            print(f"Error file. Path {Path(curr_file_path).name} is empty")
+            print(e, file=sys.stderr)
+            exit(0)
         # print(curr_tensor_tuple[0].size())
         if curr_tensor_tuple[0].size()[0] == 50:
             return curr_tensor_tuple
         else:
             return None
+
+
+def size_collate_fn(batch: torch.Tensor) -> torch.Tensor:
+    batch = list(filter(lambda x: x is not None, batch))
+    return default_collate(batch)
 
 
 def main():
@@ -101,10 +115,17 @@ def main():
 
     blobs_folder_paths_list = [blobs_save_folder_path]
     dataset = gestureBlobMultiDataset(blobs_folder_paths_list=blobs_folder_paths_list)
-    out = dataset.__getitem__(0)
+    dataloader = DataLoader(dataset=dataset, batch_size=128, shuffle=False, collate_fn=size_collate_fn)
 
+    # Data accessing examples
+    out = dataset.__getitem__(8)
     print(f"Optical flow shape: {out[0].shape}")
     print(f"Kinematics data shape: {out[1].shape}")
+
+    opt, kin = next(iter(dataloader))
+    print(f"Optical flow: {opt.shape}")
+    print(f"Kinematics: {kin.shape}")
+
 
 if __name__ == "__main__":
     main()

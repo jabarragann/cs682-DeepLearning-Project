@@ -2,3 +2,4 @@ black
 flake8
 pytest
 python-dotenv
+tqdm
