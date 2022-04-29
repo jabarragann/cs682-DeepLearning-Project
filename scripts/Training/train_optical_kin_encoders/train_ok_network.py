@@ -1,9 +1,8 @@
 import torch
 import numpy as np
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 from sklearn.metrics import classification_report
 import os
-from datetime import datetime
 from typing import Tuple, List
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,7 +19,11 @@ import pytorchcheckpoint
 
 # Project
 from deepgesture.Dataset.BlobDataset import gestureBlobMultiDataset, size_collate_fn
-from deepgesture.Dataset.UnsuperviseBlobDataset import UnsupervisedBlobDataset
+from deepgesture.Dataset.UnsuperviseBlobDataset import (
+    UnsupervisedBlobDatasetProbabilistic,
+    UnsupervisedBlobDatasetCorrect,
+    UnsupervisedBlobDatasetIncorrect,
+)
 from deepgesture.Models.EncoderDecoder import encoderDecoder
 from deepgesture.Models.OpticalFlowKinematicEncoder import OKNet
 from deepgesture.config import Config
@@ -28,7 +31,7 @@ from deepgesture.config import Config
 from OkNetworkTrainer import OkNetTrainer
 
 
-def train_encoder_decoder_multidata_embeddings(
+def train_ok_network_embeddings(
     lr: float, num_epochs: int, blobs_folder_paths_list: List[str], weights_save_path: str, weight_decay: float
 ) -> None:
     # ------------------------------------------------------------
@@ -40,14 +43,18 @@ def train_encoder_decoder_multidata_embeddings(
     if not os.path.exists(weights_save_path):
         os.makedirs(weights_save_path)
 
-    root = Config.trained_models_dir / "ok_network/T1"
+    root = Config.trained_models_dir / "ok_network/T2"
     if not root.exists():
         root.mkdir(parents=True)
 
     # ------------------------------------------------------------
     # Data loading
     # ------------------------------------------------------------
-    dataset = UnsupervisedBlobDataset(blobs_folder_path=Config.blobs_dir)
+    correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
+    incorrect_dataset = UnsupervisedBlobDatasetIncorrect(blobs_folder_path=Config.blobs_dir)
+    dataset = ConcatDataset([correct_dataset, incorrect_dataset])
+
+    # dataset = UnsupervisedBlobDatasetProbabilistic(blobs_folder_path=Config.blobs_dir)
     dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=False, collate_fn=size_collate_fn)
 
     # ------------------------------------------------------------
@@ -105,7 +112,7 @@ def main():
 
     blobs_folder_paths_list = [Config.blobs_dir]
 
-    train_encoder_decoder_multidata_embeddings(
+    train_ok_network_embeddings(
         lr=lr,
         num_epochs=num_epochs,
         blobs_folder_paths_list=blobs_folder_paths_list,
