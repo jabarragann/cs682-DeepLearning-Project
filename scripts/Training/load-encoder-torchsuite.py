@@ -47,7 +47,8 @@ def main():
 
     # Load checkpoint
     net = encoderDecoder(embedding_dim=2048)
-    net = net.cuda()
+    if torch.cuda.is_available():
+        net = net.cuda()
     optimizer = torch.optim.Adam(params=net.parameters(), lr=lr, weight_decay=weight_decay)
     loss_function = torch.nn.MSELoss()
     checkpoint, net, optimizer = CheckpointHandler.load_checkpoint_with_model(
