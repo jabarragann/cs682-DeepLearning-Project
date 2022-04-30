@@ -111,6 +111,8 @@ class UnsupervisedBlobDatasetIncorrect(UnsupervisedBlobDatasetAbstract):
         new_idx = int(m.floor(len(self) * p))
         if new_idx == idx:
             new_idx += 1
+        if new_idx == len(self):
+            new_idx -= 1
 
         curr_file_path = os.path.join(self.blobs_folder_path, self.blobs_folder[new_idx])
         new_tensor_tuple = pickle.load(open(curr_file_path, "rb"))

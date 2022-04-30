@@ -89,7 +89,6 @@ class OkNetTrainer(Trainer):
             loss = self.loss_metric(outputs, y)
             loss_sum += loss * y.shape[0]
             total += y.shape[0]
-            log.info(f"loss {loss:0.06f}")
 
         loss = loss_sum / total
         return loss.cpu().data.item()

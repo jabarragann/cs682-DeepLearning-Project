@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 from sklearn.metrics import classification_report
 import os
 from datetime import datetime
@@ -20,9 +20,13 @@ import pytorchcheckpoint
 
 # Project
 from deepgesture.Dataset.BlobDataset import gestureBlobMultiDataset, size_collate_fn
-from deepgesture.Dataset.UnsuperviseBlobDataset import UnsupervisedBlobDataset
+from deepgesture.Dataset.UnsuperviseBlobDataset import (
+    UnsupervisedBlobDatasetProbabilistic,
+    UnsupervisedBlobDatasetCorrect,
+    UnsupervisedBlobDatasetIncorrect,
+)
 from deepgesture.Models.EncoderDecoder import encoderDecoder
-from deepgesture.Models.OpticalFlowKinematicEncoder import OKNet
+from deepgesture.Models.OpticalFlowKinematicEncoder import OKNetV1, OKNetV2
 from deepgesture.config import Config
 
 from OkNetworkTrainer import OkNetTrainer
@@ -40,22 +44,28 @@ def train_encoder_decoder_multidata_embeddings(
     if not os.path.exists(weights_save_path):
         os.makedirs(weights_save_path)
 
-    root = Config.trained_models_dir / "ok_network/T1"
+    root = Config.trained_models_dir / "ok_network/T2"
     if not root.exists():
         root.mkdir(parents=True)
 
     # ------------------------------------------------------------
     # Data loading
     # ------------------------------------------------------------
-    dataset = UnsupervisedBlobDataset(blobs_folder_path=Config.blobs_dir)
-    dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=False, collate_fn=size_collate_fn)
+    # dataset = UnsupervisedBlobDatasetProbabilistic(blobs_folder_path=Config.blobs_dir)
+    # dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=False, collate_fn=size_collate_fn)
+    # net = OKNetV1(out_features=2048)
+
+    correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
+    incorrect_dataset = UnsupervisedBlobDatasetIncorrect(blobs_folder_path=Config.blobs_dir)
+    dataset = ConcatDataset([correct_dataset, incorrect_dataset])
+    dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=True, collate_fn=size_collate_fn)
+    net = OKNetV2(out_features=2048)
 
     # ------------------------------------------------------------
     # Network and optimizer
     # ------------------------------------------------------------
     loss_function = torch.nn.BCEWithLogitsLoss()
 
-    net = OKNet(out_features=2048)
     net = net.train()
     if torch.cuda.is_available():
         net.cuda()
@@ -75,7 +85,7 @@ def train_encoder_decoder_multidata_embeddings(
         root=root,
         gpu_boole=True,
         save=True,
-        log_interval=2,
+        log_interval=3,
         end_of_epoch_metrics=[],  # ["train_acc", "valid_acc"]
     )
     # checkpath = root / "best_checkpoint.pt"
@@ -99,7 +109,7 @@ def train_encoder_decoder_multidata_embeddings(
 
 def main():
     lr = 1e-3
-    num_epochs = 1000
+    num_epochs = 1500
     weights_save_path = "./weights_save"
     weight_decay = 1e-8
 
