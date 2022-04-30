@@ -25,7 +25,7 @@ from deepgesture.Dataset.UnsuperviseBlobDataset import (
     UnsupervisedBlobDatasetIncorrect,
 )
 from deepgesture.Models.EncoderDecoder import encoderDecoder
-from deepgesture.Models.OpticalFlowKinematicEncoder import OKNet
+from deepgesture.Models.OpticalFlowKinematicEncoder import OKNetV1, OKNetV2
 from deepgesture.config import Config
 
 from OkNetworkTrainer import OkNetTrainer
@@ -50,19 +50,22 @@ def train_ok_network_embeddings(
     # ------------------------------------------------------------
     # Data loading
     # ------------------------------------------------------------
+
+    # dataset = UnsupervisedBlobDatasetProbabilistic(blobs_folder_path=Config.blobs_dir)
+    # dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=False, collate_fn=size_collate_fn)
+    # net = OKNetV1(out_features=2048)
+
     correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
     incorrect_dataset = UnsupervisedBlobDatasetIncorrect(blobs_folder_path=Config.blobs_dir)
     dataset = ConcatDataset([correct_dataset, incorrect_dataset])
-
-    # dataset = UnsupervisedBlobDatasetProbabilistic(blobs_folder_path=Config.blobs_dir)
-    dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=False, collate_fn=size_collate_fn)
+    dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=True, collate_fn=size_collate_fn)
+    net = OKNetV2(out_features=2048)
 
     # ------------------------------------------------------------
     # Network and optimizer
     # ------------------------------------------------------------
     loss_function = torch.nn.BCEWithLogitsLoss()
 
-    net = OKNet(out_features=2048)
     net = net.train()
     if torch.cuda.is_available():
         net.cuda()
@@ -82,7 +85,7 @@ def train_ok_network_embeddings(
         root=root,
         gpu_boole=True,
         save=True,
-        log_interval=2,
+        log_interval=3,
         end_of_epoch_metrics=[],  # ["train_acc", "valid_acc"]
     )
     # checkpath = root / "best_checkpoint.pt"
@@ -106,7 +109,7 @@ def train_ok_network_embeddings(
 
 def main():
     lr = 1e-3
-    num_epochs = 1000
+    num_epochs = 1500
     weights_save_path = "./weights_save"
     weight_decay = 1e-8
 
