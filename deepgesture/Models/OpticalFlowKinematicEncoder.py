@@ -92,23 +92,12 @@ class OKNetV1(torch.nn.Module):
     def __init__(self, out_features) -> None:
         super().__init__()
 
-        self.kinematic_encoder_size = int(out_features / 2)
-        self.optical_encoder_size = int(out_features)
-        self.opticalflow_net_stream = ConvNetStream(optical_flow_stream=True, out_features=self.optical_encoder_size)
-        self.kinematic_net_stream = KinematicStream(self.kinematic_encoder_size)
+        self.opticalflow_net_stream = ConvNetStream(optical_flow_stream=True, out_features=out_features)
+        self.kinematic_net_stream = KinematicStream(out_features)
 
-        # Block 1
-        self.linear1 = torch.nn.Linear(
-            in_features=(self.optical_encoder_size + self.kinematic_encoder_size), out_features=1024
-        )
-        self.batch_norm1 = torch.nn.BatchNorm1d(1024)
-        self.relu_act = torch.nn.ReLU(inplace=True)
-        # Block 2
-        self.linear2 = torch.nn.Linear(in_features=1024, out_features=512)
-        self.batch_norm2 = torch.nn.BatchNorm1d(512)
-        self.relu_act = torch.nn.ReLU(inplace=True)
-        # Final
-        self.linear3 = torch.nn.Linear(in_features=512, out_features=1)
+        self.linear1 = torch.nn.Linear(in_features=2 * 2048, out_features=512)
+        # self.batch_norm = torch.nn.BatchNorm1d(512)
+        self.linear2 = torch.nn.Linear(in_features=512, out_features=1)
         self.softmax = torch.nn.Softmax(dim=1)
 
     def forward(self, x: Tuple[torch.Tensor]) -> torch.Tensor:
@@ -117,14 +106,8 @@ class OKNetV1(torch.nn.Module):
 
         x_net = torch.cat((x1, x2), dim=1)
         x_net = self.linear1(x_net)
-        x_net = self.batch_norm1(x_net)
-        x_net = self.relu_act(x_net)
 
         x_net = self.linear2(x_net)
-        x_net = self.batch_norm2(x_net)
-        x_net = self.relu_act(x_net)
-
-        x_net = self.linear3(x_net)
 
         # x_net = self.softmax(x_net)
         return x_net

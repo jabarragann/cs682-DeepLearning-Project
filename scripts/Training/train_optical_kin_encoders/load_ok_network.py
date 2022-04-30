@@ -46,7 +46,7 @@ def main():
     if torch.cuda.is_available():
         print("Using CUDA")
 
-    root = Config.trained_models_dir / "ok_network/T2"
+    root = Config.trained_models_dir / "ok_network/T1"
     if not root.exists():
         print(f"{root} does not contain a checkpoint")
         exit(0)
@@ -56,19 +56,19 @@ def main():
     # ------------------------------------------------------------
 
     ## Probabilistic dataset
-    # dataset = UnsupervisedBlobDatasetProbabilistic(blobs_folder_path=Config.blobs_dir)
-    # dataloader = DataLoader(dataset=dataset, batch_size=128, shuffle=False, collate_fn=size_collate_fn)
-    # net = OKNetV1(out_features=2048)
+    dataset = UnsupervisedBlobDatasetProbabilistic(blobs_folder_path=Config.blobs_dir)
+    dataloader = DataLoader(dataset=dataset, batch_size=128, shuffle=False, collate_fn=size_collate_fn)
+    net = OKNetV1(out_features=2048)
 
     # Complete dataset
-    correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
-    incorrect_dataset = UnsupervisedBlobDatasetIncorrect(blobs_folder_path=Config.blobs_dir)
-    dataset = ConcatDataset([correct_dataset, incorrect_dataset])
-    dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=True, collate_fn=size_collate_fn)
+    # correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
+    # incorrect_dataset = UnsupervisedBlobDatasetIncorrect(blobs_folder_path=Config.blobs_dir)
+    # dataset = ConcatDataset([correct_dataset, incorrect_dataset])
+    # dataloader = DataLoader(dataset=dataset, batch_size=128, shuffle=True, collate_fn=size_collate_fn)
 
-    log.info(f"Correct dataset   {len(correct_dataset)}")
-    log.info(f"Incorrect dataset {len(correct_dataset)}")
-    net = OKNetV2(out_features=2048)
+    # log.info(f"Correct dataset   {len(correct_dataset)}")
+    # log.info(f"Incorrect dataset {len(correct_dataset)}")
+    # net = OKNetV2(out_features=2048)
 
     # Load checkpoint
     # net = net.eval()
