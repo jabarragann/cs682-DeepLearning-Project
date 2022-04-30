@@ -23,21 +23,76 @@ import pytorchcheckpoint
 
 # Project
 from deepgesture.Dataset.BlobDataset import gestureBlobMultiDataset, size_collate_fn
-from deepgesture.Dataset.UnsuperviseBlobDataset import UnsupervisedBlobDataset
+from deepgesture.Dataset.UnsuperviseBlobDataset import UnsupervisedBlobDatasetProbabilistic
 from deepgesture.Models.EncoderDecoder import encoderDecoder
-from deepgesture.Models.OpticalFlowKinematicEncoder import OKNet
+from deepgesture.Models.OpticalFlowKinematicEncoder import OKNetV1
 from deepgesture.config import Config
 
 from torchsuite.utils.Logger import Logger
 from pytorchcheckpoint.checkpoint import CheckpointHandler
+from rich.logging import RichHandler
+from rich.progress import track
 
 log = Logger(__name__).log
 np.set_printoptions(precision=4, suppress=True, sign=" ")
 
 
 class OkNetTrainer(Trainer):
-    def calculate_acc(self, dataloader: DataLoader):
-        return 0.0
+    @torch.no_grad()
+    def calculate_acc(self, dataloader):
+        """_summary_
+
+        Parameters
+        ----------
+        dataloader : Dataloader
+
+        Returns
+        -------
+        acc: float
+        pos_samples: int
+            positive examples
+        total: int
+            total samples
+        """
+        acc_sum = 0
+        pos_samples = 0
+        total = 0
+        for batch_idx, (x, y) in track(enumerate(dataloader), "Acc calculation: ", total=len(dataloader)):
+            opt = x[0]
+            kin = x[1]
+            if self.gpu_boole:
+                opt = opt.cuda()
+                kin = kin.cuda()
+                y = y.cuda()
+
+            outputs = self.net((opt, kin))
+            pos_samples += torch.sum(y).data.item()
+            acc_sum += torch.sum((outputs > 0.5).float() == y)
+            total += y.shape[0]
+
+        acc = acc_sum / total
+        return acc.cpu().data.item(), pos_samples, total
+
+    @torch.no_grad()
+    def calculate_loss(self, dataloader: DataLoader):
+        loss_sum = 0
+        total = 0
+        for batch_idx, (x, y) in track(enumerate(dataloader), "loss calculation: ", total=len(dataloader)):
+            opt = x[0]
+            kin = x[1]
+            if self.gpu_boole:
+                opt = opt.cuda()
+                kin = kin.cuda()
+                y = y.cuda()
+
+            outputs = self.net((opt, kin))
+            loss = self.loss_metric(outputs, y)
+            loss_sum += loss * y.shape[0]
+            total += y.shape[0]
+            log.info(f"loss {loss:0.06f}")
+
+        loss = loss_sum / total
+        return loss.cpu().data.item()
 
     def train_loop(self, trial: optuna.Trial = None, verbose=True):
         log.info(f"Starting Training")

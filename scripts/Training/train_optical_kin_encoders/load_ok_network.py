@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 # Torch
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, ConcatDataset
 
 # Custom trainer
 import torchsuite
@@ -20,12 +20,19 @@ from pytorchcheckpoint.checkpoint import CheckpointHandler
 
 # Project
 from deepgesture.Dataset.BlobDataset import gestureBlobMultiDataset, size_collate_fn
-from deepgesture.Dataset.UnsuperviseBlobDataset import UnsupervisedBlobDataset
+from deepgesture.Dataset.UnsuperviseBlobDataset import (
+    UnsupervisedBlobDatasetCorrect,
+    UnsupervisedBlobDatasetIncorrect,
+    UnsupervisedBlobDatasetProbabilistic,
+)
 from deepgesture.Models.EncoderDecoder import encoderDecoder
-from deepgesture.Models.OpticalFlowKinematicEncoder import OKNet
+from deepgesture.Models.OpticalFlowKinematicEncoder import OKNetV1, OKNetV2
 from deepgesture.config import Config
 
 from OkNetworkTrainer import OkNetTrainer
+from torchsuite.utils.Logger import Logger
+
+log = Logger("ok network load").log
 
 
 def main():
@@ -45,7 +52,7 @@ def main():
         exit(0)
 
     # Load checkpoint
-    net = OKNet(out_features=2048)
+    net = OKNetV1(out_features=2048)
     net = net.eval()
     net = net.cuda()
     optimizer = torch.optim.Adam(params=net.parameters(), lr=lr, weight_decay=weight_decay)
@@ -61,8 +68,19 @@ def main():
     # ------------------------------------------------------------
     # Test accuracy
     # ------------------------------------------------------------
-    dataset = UnsupervisedBlobDataset(blobs_folder_path=Config.blobs_dir)
-    dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=False, collate_fn=size_collate_fn)
+    # Complete dataset
+    # correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
+    # incorrect_dataset = UnsupervisedBlobDatasetIncorrect(blobs_folder_path=Config.blobs_dir)
+    # dataset = ConcatDataset([correct_dataset, incorrect_dataset])
+    # log.info(f"Correct dataset   {len(correct_dataset)}")
+    # log.info(f"Incorrect dataset {len(correct_dataset)}")
+
+    ## Probabilistic dataset
+    dataset = UnsupervisedBlobDatasetProbabilistic(blobs_folder_path=Config.blobs_dir)
+
+    log.info(f"total dataset     {len(dataset)}")
+
+    dataloader = DataLoader(dataset=dataset, batch_size=128, shuffle=False, collate_fn=size_collate_fn)
     trainer_handler = OkNetTrainer(
         dataloader,
         None,
@@ -76,9 +94,19 @@ def main():
         log_interval=2,
         end_of_epoch_metrics=[],  # ["train_acc", "valid_acc"]
     )
-    print("calculating loss...")
+
     train_loss = trainer_handler.calculate_loss(dataloader)
-    print(f"Final training loss {train_loss:0.06f}")
+    log.info(f"Final training loss {train_loss:0.06f}")
+    train_acc, pos_samples, total_samples = trainer_handler.calculate_acc(dataloader)
+    log.info(f"Final training acc {train_acc:0.06f}")
+
+    log.info("DATASET STATS")
+    log.info(f"Total samples  {total_samples}")
+    log.info(f"Total positive {pos_samples}")
+    log.info(f"Total negative {total_samples-pos_samples}")
+
+    # import pdb
+    # pdb.set_trace()
 
 
 if __name__ == "__main__":
