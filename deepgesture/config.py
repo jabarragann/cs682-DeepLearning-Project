@@ -6,7 +6,12 @@ import os
 class Config:
     # Load data paths as environment
     module_root = Path(__file__)
-    dotenv.load_dotenv(os.path.join(module_root.parent, ".project_paths"))
+    config_path = Path(module_root.parent) / ".project_paths"
+    if not config_path.exists():
+        print("Create the configuration file at deepgesture/.project_paths")
+        exit(0)
+
+    dotenv.load_dotenv(config_path)
     suturing_raw_dir = Path(os.getenv("SUTURING_RAW_DIR"))
     suturing_processed_dir = Path(os.getenv("SUTURING_PROCESSED_DIR"))
     # ------------------------------------------------------------
