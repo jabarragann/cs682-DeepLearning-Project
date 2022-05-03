@@ -6,7 +6,7 @@ import os
 import pickle
 from typing import Tuple, List
 from torch.utils.data.dataloader import default_collate
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 from deepgesture.config import Config
 import random
 import math as m
@@ -59,6 +59,8 @@ class UnsupervisedBlobDatasetProbabilistic(UnsupervisedBlobDatasetAbstract):
             new_idx = int(m.floor(len(self) * p))
             if new_idx == idx:
                 new_idx += 1
+            if new_idx == len(self):
+                return None
             curr_file_path = os.path.join(self.blobs_folder_path, self.blobs_folder[new_idx])
             new_tensor_tuple = pickle.load(open(curr_file_path, "rb"))
             # Swap kinematic data between blobs
@@ -112,7 +114,7 @@ class UnsupervisedBlobDatasetIncorrect(UnsupervisedBlobDatasetAbstract):
         if new_idx == idx:
             new_idx += 1
         if new_idx == len(self):
-            new_idx -= 1
+            return None
 
         curr_file_path = os.path.join(self.blobs_folder_path, self.blobs_folder[new_idx])
         new_tensor_tuple = pickle.load(open(curr_file_path, "rb"))
@@ -141,6 +143,17 @@ def main():
     print(f"Label {label}")
     print(f"Optical flow shape: {out[0].shape}")
     print(f"Kinematics data shape: {out[1].shape}")
+
+    (opt, kin), label = next(iter(dataloader))
+    print(f"labels {label}")
+    print(f"Optical flow: {opt.shape}")
+    print(f"Kinematics: {kin.shape}")
+
+    # Correct incorrect dataset
+    correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
+    incorrect_dataset = UnsupervisedBlobDatasetIncorrect(blobs_folder_path=Config.blobs_dir)
+    dataset = ConcatDataset([correct_dataset, incorrect_dataset])
+    dataloader = DataLoader(dataset=dataset, batch_size=10, shuffle=True, collate_fn=size_collate_fn)
 
     (opt, kin), label = next(iter(dataloader))
     print(f"labels {label}")
