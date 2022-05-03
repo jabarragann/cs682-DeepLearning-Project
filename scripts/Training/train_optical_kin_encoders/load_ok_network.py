@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Tuple, List
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
 
 # Torch
 import torch
@@ -46,7 +47,7 @@ def main():
     if torch.cuda.is_available():
         print("Using CUDA")
 
-    root = Config.trained_models_dir / "ok_network/T2"
+    root = Config.trained_models_dir / "ok_network/T9"
     if not root.exists():
         print(f"{root} does not contain a checkpoint")
         exit(0)
@@ -56,23 +57,23 @@ def main():
     # ------------------------------------------------------------
 
     ## Probabilistic dataset
-    # dataset = UnsupervisedBlobDatasetProbabilistic(blobs_folder_path=Config.blobs_dir)
-    # dataloader = DataLoader(dataset=dataset, batch_size=128, shuffle=False, collate_fn=size_collate_fn)
-    # net = OKNetV1(out_features=2048)
+    dataset = UnsupervisedBlobDatasetProbabilistic(blobs_folder_path=Config.blobs_dir)
+    dataloader = DataLoader(dataset=dataset, batch_size=128, shuffle=False, collate_fn=size_collate_fn)
+    net = OKNetV1(out_features=2048, reduce_kin_feat=True)
 
     # Complete dataset
-    correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
-    incorrect_dataset = UnsupervisedBlobDatasetIncorrect(blobs_folder_path=Config.blobs_dir)
-    dataset = ConcatDataset([correct_dataset, incorrect_dataset])
-    dataloader = DataLoader(dataset=dataset, batch_size=128, shuffle=True, collate_fn=size_collate_fn)
+    # correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
+    # incorrect_dataset = UnsupervisedBlobDatasetIncorrect(blobs_folder_path=Config.blobs_dir)
+    # dataset = ConcatDataset([correct_dataset, incorrect_dataset])
+    # dataloader = DataLoader(dataset=dataset, batch_size=128, shuffle=True, collate_fn=size_collate_fn)
 
-    log.info(f"Correct dataset   {len(correct_dataset)}")
-    log.info(f"Incorrect dataset {len(correct_dataset)}")
-    net = OKNetV2(out_features=2048)
+    # log.info(f"Correct dataset   {len(correct_dataset)}")
+    # log.info(f"Incorrect dataset {len(correct_dataset)}")
+    # net = OKNetV2(out_features=2048)
 
     # Load checkpoint
-    # net = net.eval()
-    net = net.train()
+    net = net.eval()
+    # net = net.train()
     net = net.cuda()
     optimizer = torch.optim.Adam(params=net.parameters(), lr=lr, weight_decay=weight_decay)
     loss_function = torch.nn.BCEWithLogitsLoss()
@@ -103,9 +104,11 @@ def main():
         end_of_epoch_metrics=[],  # ["train_acc", "valid_acc"]
     )
 
-    train_loss = trainer_handler.calculate_loss(dataloader)
-    log.info(f"Final training loss {train_loss:0.06f}")
-    train_acc, pos_samples, total_samples = trainer_handler.calculate_acc(dataloader)
+    # train_loss = trainer_handler.calculate_loss(dataloader)
+    # log.info(f"Final training loss {train_loss:0.06f}")
+    y_true = []
+    y_pred = []
+    train_acc, pos_samples, total_samples = trainer_handler.calculate_acc(dataloader, y_true=y_true, y_pred=y_pred)
     log.info(f"Final training acc {train_acc:0.06f}")
 
     log.info("DATASET STATS")
@@ -113,7 +116,14 @@ def main():
     log.info(f"Total positive {pos_samples}")
     log.info(f"Total negative {total_samples-pos_samples}")
 
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+    log.info(f"fn {fn}")
+    log.info(f"fp {fp}")
+    log.info(f"tn {tn}")
+    log.info(f"tp {tp}")
+
     # import pdb
+
     # pdb.set_trace()
 
 

@@ -1,3 +1,4 @@
+from functools import reduce
 import numpy as np
 import torch
 from typing import Tuple
@@ -89,15 +90,21 @@ class KinematicStream(torch.nn.Module):
 
 
 class OKNetV1(torch.nn.Module):
-    def __init__(self, out_features) -> None:
+    def __init__(self, out_features, reduce_kin_feat=False) -> None:
         super().__init__()
 
-        self.opticalflow_net_stream = ConvNetStream(optical_flow_stream=True, out_features=out_features)
-        self.kinematic_net_stream = KinematicStream(out_features)
+        if reduce_kin_feat:
+            kin_embedding = int(out_features / 3)
+        else:
+            kin_embedding = out_features
 
-        self.linear1 = torch.nn.Linear(in_features=2 * 2048, out_features=512)
+        self.opticalflow_net_stream = ConvNetStream(optical_flow_stream=True, out_features=out_features)
+        self.kinematic_net_stream = KinematicStream(kin_embedding)
+        total_features = out_features + kin_embedding
+        self.linear1 = torch.nn.Linear(in_features=total_features, out_features=512)
         # self.batch_norm = torch.nn.BatchNorm1d(512)
         self.linear2 = torch.nn.Linear(in_features=512, out_features=1)
+        self.sigmoid = torch.nn.Sigmoid()
         self.softmax = torch.nn.Softmax(dim=1)
 
     def forward(self, x: Tuple[torch.Tensor]) -> torch.Tensor:
@@ -109,8 +116,9 @@ class OKNetV1(torch.nn.Module):
 
         x_net = self.linear2(x_net)
 
-        # x_net = self.softmax(x_net)
+        # x_net = self.sigmoid(x_net)
         return x_net
+
 
 class OKNetV2(torch.nn.Module):
     def __init__(self, out_features) -> None:
@@ -133,6 +141,7 @@ class OKNetV2(torch.nn.Module):
         self.relu_act = torch.nn.ReLU(inplace=True)
         # Final
         self.linear3 = torch.nn.Linear(in_features=512, out_features=1)
+        self.sigmoid = torch.nn.Sigmoid()
         self.softmax = torch.nn.Softmax(dim=1)
 
     def forward(self, x: Tuple[torch.Tensor]) -> torch.Tensor:
@@ -150,8 +159,9 @@ class OKNetV2(torch.nn.Module):
 
         x_net = self.linear3(x_net)
 
-        # x_net = self.softmax(x_net)
+        x_net = self.sigmoid(x_net)
         return x_net
+
 
 if __name__ == "__main__":
     # load dataset

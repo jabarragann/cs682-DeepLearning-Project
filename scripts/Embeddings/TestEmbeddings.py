@@ -1,3 +1,4 @@
+from black import out
 import numpy as np
 import torch
 from sklearn.cluster import KMeans
@@ -18,6 +19,7 @@ import re
 
 from deepgesture.config import Config
 from deepgesture.Models.EncoderDecoder import encoderDecoder
+from deepgesture.Models.OpticalFlowKinematicEncoder import OKNetV1
 from deepgesture.Dataset.BlobDataset import gestureBlobDataset, size_collate_fn
 from pytorchcheckpoint.checkpoint import CheckpointHandler
 
@@ -44,7 +46,8 @@ def store_embeddings_in_dict(blobs_folder_path: str, model: encoderDecoder) -> d
         try:
             curr_blob = curr_blob.view(1, 50, 240, 320)
 
-            out = model.conv_net_stream(curr_blob)
+            # out = model.conv_net_stream(curr_blob)
+            out = model(curr_blob)
             out = out.cpu().detach().data.numpy()
             embeddings_list.append(out)
 
@@ -53,8 +56,9 @@ def store_embeddings_in_dict(blobs_folder_path: str, model: encoderDecoder) -> d
             gestures_list.append(file[-1].split(".")[0])
             user_list.append(file[3][0])
             skill_list.append(skill_dict[file[3][0]])
-        except:
+        except Exception as e:
             print(f"exception in file {file}")
+            print(e)
             pass
 
     final_dict = {
@@ -167,20 +171,22 @@ def main():
     num_epochs = 1000
     weight_decay = 1e-8
     blobs_folder_path = Config.blobs_dir
-    root = Config.trained_models_dir / "encoder_decoder/T1"
+    # root = Config.trained_models_dir / "encoder_decoder/T1"
+    root = Config.trained_models_dir / "ok_network/T9"
     if not root.exists():
         print(f"{root} does not contain a checkpoint")
         exit(0)
 
     # Load model
-    net = encoderDecoder(embedding_dim=2048)
+    net = OKNetV1(out_features=2048)
+    # net = encoderDecoder(embedding_dim=2048)
     # net = net.cuda()
     optimizer = torch.optim.Adam(params=net.parameters(), lr=lr, weight_decay=weight_decay)
     loss_function = torch.nn.MSELoss()
     checkpoint, net, optimizer = CheckpointHandler.load_checkpoint_with_model(
         root / "final_checkpoint.pt", net, optimizer
     )
-
+    net = net.opticalflow_net_stream
     embedding_path = Config.trained_models_dir / "embedding_dict.pkl"
     if not embedding_path.exists():
         embedding_dict = store_embeddings_in_dict(blobs_folder_path=blobs_folder_path, model=net)

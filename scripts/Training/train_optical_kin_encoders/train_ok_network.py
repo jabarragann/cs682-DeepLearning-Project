@@ -43,7 +43,7 @@ def train_ok_network_embeddings(
     if not os.path.exists(weights_save_path):
         os.makedirs(weights_save_path)
 
-    root = Config.trained_models_dir / "ok_network/T2"
+    root = Config.trained_models_dir / "ok_network/T9"
     if not root.exists():
         root.mkdir(parents=True)
 
@@ -51,20 +51,21 @@ def train_ok_network_embeddings(
     # Data loading
     # ------------------------------------------------------------
 
-    # dataset = UnsupervisedBlobDatasetProbabilistic(blobs_folder_path=Config.blobs_dir)
-    # dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=False, collate_fn=size_collate_fn)
-    # net = OKNetV1(out_features=2048)
+    dataset = UnsupervisedBlobDatasetProbabilistic(blobs_folder_path=Config.blobs_dir)
+    dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=False, collate_fn=size_collate_fn)
+    net = OKNetV1(out_features=2048, reduce_kin_feat=True)
 
-    correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
-    incorrect_dataset = UnsupervisedBlobDatasetIncorrect(blobs_folder_path=Config.blobs_dir)
-    dataset = ConcatDataset([correct_dataset, incorrect_dataset])
-    dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=True, collate_fn=size_collate_fn)
-    net = OKNetV2(out_features=2048)
+    # correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
+    # incorrect_dataset = UnsupervisedBlobDatasetIncorrect(blobs_folder_path=Config.blobs_dir)
+    # dataset = ConcatDataset([correct_dataset, incorrect_dataset])
+    # dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=True, collate_fn=size_collate_fn)
+    # net = OKNetV2(out_features=2048)
 
     # ------------------------------------------------------------
     # Network and optimizer
     # ------------------------------------------------------------
     loss_function = torch.nn.BCEWithLogitsLoss()
+    # loss_function = torch.nn.BCELoss()
 
     net = net.train()
     if torch.cuda.is_available():

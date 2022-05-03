@@ -91,7 +91,7 @@ def cluster_statistics(
     # results_dict = store_embeddings_in_dict(blobs_folder_path=blobs_folder_path, model=model)
     results_dict = embedding_dict
     k_means = KMeans(n_clusters=num_clusters)
-    cluster_indices = k_means.fit_predict(np.array(results_dict["kin_embeddings"]).reshape(-1, 682))
+    cluster_indices = k_means.fit_predict(np.array(results_dict["opt_embeddings"]).reshape(-1, 2048))
     results_dict["cluster_indices"] = cluster_indices
     df = pd.DataFrame(results_dict)
     return df
@@ -131,10 +131,11 @@ def evaluate_model(
     kin_X = [np.array(v) for v in df["kin_embeddings"]]
     kin_raw_X = [np.array(v) for v in df["kin_raw"]]
     opt_X = np.array(opt_X).reshape(-1, 2048)
-    kin_X = np.array(kin_X).reshape(-1, 682)
+    kin_X = np.array(kin_X).reshape(-1, 682)  # full: 2048, reduced: 682
     kin_raw_X = np.array(kin_raw_X).reshape(-1, 1900)
     # X = opt_X
-    X = kin_raw_X
+    # X = kin_raw_X
+    X = kin_X
     # X = np.hstack((opt_X, kin_X))
     classifier = XGBClassifier(n_estimators=1000)
     X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, random_state=8765)
@@ -198,7 +199,7 @@ def main():
         exit(0)
 
     # Load model
-    net = OKNetV1(out_features=2048)
+    net = OKNetV1(out_features=2048, reduce_kin_feat=True)
     # net = encoderDecoder(embedding_dim=2048)
     # net = net.cuda()
     optimizer = torch.optim.Adam(params=net.parameters(), lr=lr, weight_decay=weight_decay)
