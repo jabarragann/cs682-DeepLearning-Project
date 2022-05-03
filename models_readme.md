@@ -25,6 +25,8 @@
 * Same as 8 but reducing the features of the kinematic encoder by 3. kin_encoder_size = 2048/3
 * Kinematic embedding achieved a 37% classification accuracy
 
+**T10**
+* Train kinematic embedding with a pretrained and frozen optical flow embedding.
 
 # Additional ideas
 * Combine encoder-decoder net with our approach. 
