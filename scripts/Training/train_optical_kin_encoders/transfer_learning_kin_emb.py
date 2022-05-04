@@ -122,10 +122,16 @@ def train_kin_embedding(
     opt_encoder = encoder_decoder_net.conv_net_stream
     for param in opt_encoder.parameters():
         param.requires_grad = False
-    total_trainable_params = sum(p.numel() for p in opt_encoder.parameters() if p.requires_grad)
-    log.info(f"{total_trainable_params:,} training parameters in opt_encoder.")
 
     net.opticalflow_net_stream = opt_encoder
+
+    total_params = sum(p.numel() for p in net.parameters())
+    log.info(f"{total_params:,} total parameters.")
+    total_trainable_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
+    log.info(f"{total_trainable_params:,} training parameters in net.")
+    opt_enc_trainable_params = sum(p.numel() for p in opt_encoder.parameters() if p.requires_grad)
+    log.info(f"{opt_enc_trainable_params:,} training parameters in opt_encoder.")
+    log.info(f"%of trainable params in net {total_trainable_params/total_params*100:0.4f}%")
 
     # ------------------------------------------------------------
     # Trainer
@@ -163,7 +169,7 @@ def train_kin_embedding(
 
 
 def main():
-    lr = 1e-3
+    lr = 1e-7
     num_epochs = 1500
     weights_save_path = "./weights_save"
     weight_decay = 1e-8
