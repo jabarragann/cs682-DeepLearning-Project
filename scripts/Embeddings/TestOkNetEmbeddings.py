@@ -131,12 +131,12 @@ def evaluate_model(
     kin_X = [np.array(v) for v in df["kin_embeddings"]]
     kin_raw_X = [np.array(v) for v in df["kin_raw"]]
     opt_X = np.array(opt_X).reshape(-1, 2048)
-    kin_X = np.array(kin_X).reshape(-1, 682)  # full: 2048, reduced: 682
+    kin_X = np.array(kin_X).reshape(-1, 2048)  # full: 2048, reduced: 682
     kin_raw_X = np.array(kin_raw_X).reshape(-1, 1900)
     # X = opt_X
-    # X = kin_raw_X
     X = kin_X
     # X = np.hstack((opt_X, kin_X))
+    # X = kin_raw_X
     classifier = XGBClassifier(n_estimators=1000)
     X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, random_state=8765)
     print("Training XGBClassifier...")
@@ -192,14 +192,14 @@ def main():
     num_epochs = 1000
     weight_decay = 1e-8
     blobs_folder_path = Config.blobs_dir
-    # root = Config.trained_models_dir / "encoder_decoder/T1"
-    root = Config.trained_models_dir / "ok_network/T9"
+
+    root = Config.trained_models_dir / "ok_network/HT5"
     if not root.exists():
         print(f"{root} does not contain a checkpoint")
         exit(0)
 
     # Load model
-    net = OKNetV1(out_features=2048, reduce_kin_feat=True)
+    net = OKNetV1(out_features=2048, reduce_kin_feat=False)
     # net = encoderDecoder(embedding_dim=2048)
     # net = net.cuda()
     optimizer = torch.optim.Adam(params=net.parameters(), lr=lr, weight_decay=weight_decay)
