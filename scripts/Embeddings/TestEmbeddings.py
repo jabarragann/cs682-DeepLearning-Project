@@ -16,6 +16,7 @@ from typing import List, Tuple
 from tqdm import tqdm
 from joblib import dump, load
 import re
+import umap
 
 from deepgesture.config import Config
 from deepgesture.Models.EncoderDecoder import encoderDecoder
@@ -164,6 +165,24 @@ def evaluate_model_multidata(
     dump(classifier, classifier_save_path)
     print("Classifier saved.")
 
+def plot_umap_clusters(blobs_folder_path: str, model: encoderDecoder, plot_store_path: str) -> None:
+    results_dict = store_embeddings_in_dict(blobs_folder_path = blobs_folder_path, model = model)
+    embeddings = np.array(results_dict['embeddings']).squeeze()
+    
+    print('Training umap reducer.')    
+    umap_reducer = umap.UMAP()
+    reduced_embeddings = umap_reducer.fit_transform(embeddings)
+
+    le_gest = LabelEncoder()
+    le_gest.fit(results_dict['gesture'])
+    print('Generating gesture plots.')
+    plt.scatter(reduced_embeddings[:, 0], reduced_embeddings[:, 1], c=[sns.color_palette()[x] for x in le_gest.transform(results_dict['gesture'])])
+    plt.gca().set_aspect('equal', 'datalim')
+    plt.title('UMAP Projection of the Gesture Clusters', fontsize=20)
+    save_path = os.path.join(plot_store_path, 'umap_gesture.png')
+    plt.savefig(save_path)
+    plt.clf()
+
 
 def main():
     # Setup
@@ -196,8 +215,11 @@ def main():
     evaluate_model(
         embedding_dict, blobs_folder_path=blobs_folder_path, model=net, num_clusters=10, save_embeddings=False
     )
+    plot_store_path = Config.trained_models_dir / './umap_plots/'
+    if not plot_store_path.exists():
+        os.mkdir(plot_store_path)
     # evaluate_model_multidata(blobs_folder_paths_list = blobs_folder_paths_list, model = model, num_clusters = 10, save_embeddings = False)
-
+    plot_umap_clusters(blobs_folder_path, net, plot_store_path)
 
 if __name__ == "__main__":
     main()
