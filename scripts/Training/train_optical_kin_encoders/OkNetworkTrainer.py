@@ -39,12 +39,17 @@ np.set_printoptions(precision=4, suppress=True, sign=" ")
 
 class OkNetTrainer(Trainer):
     @torch.no_grad()
-    def calculate_acc(self, dataloader):
+    def calculate_acc(self, dataloader, y_true: List = [], y_pred: List = []):
         """_summary_
 
         Parameters
         ----------
         dataloader : Dataloader
+        y_true: List(Optional)
+            Pass a list to this function to store the y_true values of the dataloader. This can be used to calculated
+            the confusion matrix.
+        y_pred: List(Optional)
+            Pass a list to this function to store the y_pred of the dataloader.
 
         Returns
         -------
@@ -66,9 +71,17 @@ class OkNetTrainer(Trainer):
                 y = y.cuda()
 
             outputs = self.net((opt, kin))
+            soft = torch.nn.Softmax(dim=0)
+            sig = torch.nn.Sigmoid()
+            outputs = sig(outputs)
+            # print(outputs)
+            predictions = (outputs > 0.5).float()
             pos_samples += torch.sum(y).data.item()
-            acc_sum += torch.sum((outputs > 0.5).float() == y)
+            acc_sum += torch.sum(predictions == y)
             total += y.shape[0]
+
+            y_pred += predictions.cpu().detach().numpy().squeeze().tolist()
+            y_true += y.cpu().detach().numpy().squeeze().tolist()
 
         acc = acc_sum / total
         return acc.cpu().data.item(), pos_samples, total

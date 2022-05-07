@@ -43,7 +43,7 @@ def train_ok_network_embeddings(
     if not os.path.exists(weights_save_path):
         os.makedirs(weights_save_path)
 
-    root = Config.trained_models_dir / "ok_network/T7"
+    root = Config.trained_models_dir / "ok_network/T8"
     if not root.exists():
         root.mkdir(parents=True)
 
@@ -53,13 +53,13 @@ def train_ok_network_embeddings(
 
     # dataset = UnsupervisedBlobDatasetProbabilistic(blobs_folder_path=Config.blobs_dir)
     # dataloader = DataLoader(dataset=dataset, batch_size=200, shuffle=False, collate_fn=size_collate_fn)
-    net = OKNetV1(out_features=2048)
+    # net = OKNetV1(out_features=2048)
 
     correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
     incorrect_dataset = UnsupervisedBlobDatasetIncorrect(blobs_folder_path=Config.blobs_dir)
     dataset = ConcatDataset([correct_dataset, incorrect_dataset])
-    dataloader = DataLoader(dataset=dataset, batch_size=128, shuffle=True, collate_fn=size_collate_fn)
-    # net = OKNetV2(out_features=2048)
+    dataloader = DataLoader(dataset=dataset, batch_size=200, shuffle=True, collate_fn=size_collate_fn)
+    net = OKNetV2(out_features=2048)
 
     # ------------------------------------------------------------
     # Network and optimizer

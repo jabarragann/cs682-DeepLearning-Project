@@ -8,6 +8,8 @@ from typing import Tuple, List
 import numpy as np
 import matplotlib.pyplot as plt
 
+from sklearn.metrics import confusion_matrix
+
 # Torch
 import torch
 from torch.utils.data import DataLoader, Dataset, ConcatDataset
@@ -89,7 +91,6 @@ def main():
     # ------------------------------------------------------------
     log.info(f"total dataset     {len(dataset)}")
 
-
     trainer_handler = OkNetTrainer(
         dataloader,
         None,
@@ -103,10 +104,15 @@ def main():
         log_interval=2,
         end_of_epoch_metrics=[],  # ["train_acc", "valid_acc"]
     )
+    
+    y_true = []
+    y_pred = []
 
-    train_loss = trainer_handler.calculate_loss(dataloader)
-    log.info(f"Final training loss {train_loss:0.06f}")
-    train_acc, pos_samples, total_samples = trainer_handler.calculate_acc(dataloader)
+    # train_loss = trainer_handler.calculate_loss(dataloader)
+    # log.info(f"Final training loss {train_loss:0.06f}")
+    
+    # train_acc, pos_samples, total_samples = trainer_handler.calculate_acc(dataloader)
+    train_acc, pos_samples, total_samples = trainer_handler.calculate_acc(dataloader, y_true=y_true, y_pred=y_pred)
     log.info(f"Final training acc {train_acc:0.06f}")
 
     log.info("DATASET STATS")
@@ -116,6 +122,12 @@ def main():
 
     # import pdb
     # pdb.set_trace()
+
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+    log.info(f"fn {fn}")
+    log.info(f"fp {fp}")
+    log.info(f"tn {tn}")
+    log.info(f"tp {tp}")
 
 
 if __name__ == "__main__":
