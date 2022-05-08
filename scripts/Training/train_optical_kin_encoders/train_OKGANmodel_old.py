@@ -29,7 +29,6 @@ import pytorchcheckpoint
 from deepgesture.Dataset.BlobDataset import gestureBlobMultiDataset, size_collate_fn
 from deepgesture.Dataset.UnsuperviseBlobDataset import (
     UnsupervisedBlobDatasetProbabilistic,
-    UnsupervisedBlobDatasetGanProbabilistic,
     UnsupervisedBlobDatasetCorrect,
     UnsupervisedBlobDatasetIncorrect,
 )
@@ -80,7 +79,7 @@ def train_kin_embedding(
     if not os.path.exists(weights_save_path):
         os.makedirs(weights_save_path)
 
-    root = Config.trained_models_dir / "OKGAN/T5"
+    root = Config.trained_models_dir / "OKGAN/T3"
     if not root.exists():
         root.mkdir(parents=True)
 
@@ -90,7 +89,7 @@ def train_kin_embedding(
     # Data loading
     # ------------------------------------------------------------
 
-    dataset = UnsupervisedBlobDatasetGanProbabilistic(blobs_folder_path=Config.blobs_dir)
+    dataset = UnsupervisedBlobDatasetProbabilistic(blobs_folder_path=Config.blobs_dir)
     dataloader = DataLoader(dataset=dataset, batch_size=200, shuffle=False, collate_fn=size_collate_fn)
 
     # Model definition
@@ -98,8 +97,8 @@ def train_kin_embedding(
     ed_net = encoderDecoder(2048)
 
 
-    # correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
-    # correct_dataloader = DataLoader(dataset=correct_dataset, batch_size=200, shuffle=True, collate_fn=size_collate_fn)
+    correct_dataset = UnsupervisedBlobDatasetCorrect(blobs_folder_path=Config.blobs_dir)
+    correct_dataloader = DataLoader(dataset=correct_dataset, batch_size=200, shuffle=True, collate_fn=size_collate_fn)
     # incorrect_dataset = UnsupervisedBlobDatasetIncorrect(blobs_folder_path=Config.blobs_dir)
     # dataset = ConcatDataset([correct_dataset, incorrect_dataset])
     # dataloader = DataLoader(dataset=dataset, batch_size=64, shuffle=True, collate_fn=size_collate_fn)
@@ -139,22 +138,20 @@ def train_kin_embedding(
         # Batch loop
         local_loss_sum = 0
         local_total = 0
-        for batch_idx, (x, y) in enumerate(dataloader):
+        for batch_idx, (x, y) in enumerate(correct_dataloader):
                 
             opt = x[0]
             kin = x[1]
-            kin_correct = x[2]
             if torch.cuda.is_available():
                 opt = opt.cuda()
                 kin = kin.cuda()
-                kin_correct = kin_correct.cuda()
                 # x = x.cuda()
                 y = y.cuda()
 
             # loss calculation and gradient update:
             ed_optimizer.zero_grad()
             outputs1 = ed_net(opt)
-            ed_loss = ed_loss_function(outputs1, kin_correct)  # REMEMBER loss(OUTPUTS,LABELS)
+            ed_loss = ed_loss_function(outputs1, kin)  # REMEMBER loss(OUTPUTS,LABELS)
             ed_loss.backward()
             ed_optimizer.step()  # Update parameters
 
@@ -179,12 +176,55 @@ def train_kin_embedding(
                 local_loss = (local_loss_sum / local_total).cpu().item()
                 if True:
                     log.info(
-                        f"epoch {epoch:3d} batch_idx {batch_idx:4d}/{len(dataloader)-1} local_loss {local_loss:0.6f}"
+                        f"epoch {epoch:3d} correct batch_idx {batch_idx:4d}/{len(dataloader)-1} local_loss {local_loss:0.6f}"
                     )
 
                 local_loss_sum = 0
                 local_total = 0
             
+        for batch_idx, (x, y) in enumerate(dataloader):
+            
+            opt = x[0]
+            kin = x[1]
+            if torch.cuda.is_available():
+                opt = opt.cuda()
+                kin = kin.cuda()
+                # x = x.cuda()
+                y = y.cuda()
+
+            # loss calculation and gradient update:
+            # ed_optimizer.zero_grad()
+            # outputs1 = ed_net(opt)
+            # ed_loss = ed_loss_function(outputs1, kin)  # REMEMBER loss(OUTPUTS,LABELS)
+            # ed_loss.backward()
+            # ed_optimizer.step()  # Update parameters
+
+            ok_optimizer.zero_grad()
+            outputs2 = ok_net((opt, kin))
+            ok_loss = ok_loss_function(outputs2, y)  # REMEMBER loss(OUTPUTS,LABELS)
+            ok_loss.backward()
+            ok_optimizer.step()  # Update parameters
+
+            loss = ok_loss
+
+            # Global loss
+            loss_sum += loss * y.shape[0]
+            ed_loss_sum += ed_loss * y.shape[0]
+            ok_loss_sum += ok_loss * y.shape[0]
+            total += y.shape[0]
+            # Local loss
+            local_loss_sum += loss * y.shape[0]
+            local_total += y.shape[0]
+
+            if batch_idx % 3 == 0:
+                local_loss = (local_loss_sum / local_total).cpu().item()
+                if True:
+                    log.info(
+                        f"epoch {epoch:3d} all batch_idx {batch_idx:4d}/{len(dataloader)-1} local_loss {local_loss:0.6f}"
+                    )
+
+                local_loss_sum = 0
+                local_total = 0
             
 
         # End of epoch statistics
@@ -196,16 +236,7 @@ def train_kin_embedding(
         ed_loss_values.append((ed_loss / total). cpu().item())
         ok_loss_values.append((ok_loss / total). cpu().item())
 
-        if epoch % 100 == 0:
-            name_ok = "ok_checkpoint_" + str(epoch) +  ".pt"
-            file_name_ok = root / name_ok
-            torch.save(oknet.state_dict(), file_name_ok)
-
-            name_ed = "ed_checkpoint_" + str(epoch) +  ".pt"
-            file_name_ed = root / name_ed
-            torch.save(ednet.state_dict(), file_name_ed)
-
-        # Saving Final models
+        # Saving models
         if epoch == num_epochs-1:
             file_name_ok = root / "ok_final_checkpoint.pt"
             torch.save(oknet.state_dict(), file_name_ok)
@@ -247,8 +278,8 @@ def train_kin_embedding(
 
 
 def main():
-    lr = 1e-4
-    num_epochs = 1000
+    lr = 1e-3
+    num_epochs = 200
     weights_save_path = "./weights_save"
     weight_decay = 1e-6
 

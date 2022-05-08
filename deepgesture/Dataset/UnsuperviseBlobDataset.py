@@ -66,6 +66,43 @@ class UnsupervisedBlobDatasetProbabilistic(UnsupervisedBlobDatasetAbstract):
 
             return combined_tuple, torch.tensor([0.0], dtype=torch.float32)
 
+class UnsupervisedBlobDatasetGanProbabilistic(UnsupervisedBlobDatasetAbstract):
+    """Dataset for unsupervised training of optical and kinematic encoders.
+    When accessing a sample the kinematic data will be replace with the data from another
+    sample with a probability of 0.5. The label will be either 1 if the kinematic and optical
+    flow correspond to the same sample or 0 otherwise.
+    """
+
+    def __init__(self, blobs_folder_path: str) -> None:
+        super().__init__(blobs_folder_path)
+
+    def __getitem__(self, idx: int) -> torch.Tensor:
+        curr_file_path = self.blobs_folder[idx]
+        curr_file_path = os.path.join(self.blobs_folder_path, curr_file_path)
+        curr_tensor_tuple = pickle.load(open(curr_file_path, "rb"))
+        # print(curr_tensor_tuple[0].size())
+
+        if curr_tensor_tuple[0].size()[0] != 50:
+            print(f"error in {curr_file_path}")
+            return None
+
+        # Get random number between 0 and 1
+        p = random.random()
+        if p > 0.5:
+            combined_tuple = (curr_tensor_tuple[0], curr_tensor_tuple[1], curr_tensor_tuple[1])
+            return combined_tuple, torch.tensor([1.0], dtype=torch.float32)
+        else:
+            # Load random blob
+            new_idx = int(m.floor(len(self) * p))
+            if new_idx == idx:
+                new_idx += 1
+            curr_file_path = os.path.join(self.blobs_folder_path, self.blobs_folder[new_idx])
+            new_tensor_tuple = pickle.load(open(curr_file_path, "rb"))
+            # Swap kinematic data between blobs
+            combined_tuple = (curr_tensor_tuple[0], new_tensor_tuple[1], curr_tensor_tuple[1])
+
+            return combined_tuple, torch.tensor([0.0], dtype=torch.float32)
+
 
 class UnsupervisedBlobDatasetCorrect(UnsupervisedBlobDatasetAbstract):
     """Dataset for unsupervised training of optical and kinematic encoders.

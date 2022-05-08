@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings('ignore')
+from fileinput import filename
 import string
 from black import out
 import numpy as np
@@ -47,7 +50,7 @@ def store_embeddings_in_dict(blobs_folder_path: str, model: OKNetV1) -> dict:
     kin_encoder.eval()
 
     for file in blobs_folder:
-        print("Processing file {}".format(file))
+        # print("Processing file {}".format(file))
 
         curr_path = os.path.join(blobs_folder_path, file)
         opt_blob, kin_blob = pickle.load(open(curr_path, "rb"))
@@ -137,10 +140,10 @@ def evaluate_model(
     opt_X = np.array(opt_X).reshape(-1, 2048)
     kin_X = np.array(kin_X).reshape(-1, 2048)  # full: 2048, reduced: 682
     kin_raw_X = np.array(kin_raw_X).reshape(-1, 1900)
-    X = opt_X
+    # X = opt_X
     # X = kin_raw_X
     # X = kin_X
-    # X = np.hstack((opt_X, kin_X))
+    X = np.hstack((opt_X, kin_X))
     classifier = XGBClassifier(n_estimators=1000)
     X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, random_state=8765)
     print("Training XGBClassifier...")
@@ -148,7 +151,7 @@ def evaluate_model(
     y_hat = classifier.predict(X_train)
     y_hat_test = classifier.predict(X_test)
     
-    print(label)
+    print("::::::::::" + label + ":::::::")
     print("Training set classification report.")
     print(classification_report(y_train, y_hat))
 
@@ -264,6 +267,8 @@ def plot_umap_clusters(results_dict, plot_store_path: str) -> None:
 
 
 def main():
+
+
     # Setup
     lr = 1e-3
     num_epochs = 1000
@@ -287,39 +292,47 @@ def main():
     # checkpoint, net, optimizer = CheckpointHandler.load_checkpoint_with_model(
     #     root / "final_checkpoint.pt", net, optimizer
     # )
-
     # net = OKNetV1(out_features=2048)
-    # checkpoint = torch.load( root / "ok_final_checkpoint.pt", map_location="cpu")
-    chk_name_ok = "ok_checkpoint_700.pt"
-    checkpoint = torch.load( root / chk_name_ok, map_location="cpu")
-    net.load_state_dict(checkpoint)
 
+    epochs = 1000
+    for i_epoch in range(int(epochs/100)):
 
     
-    clustering_path = (root/"clustering_test700")
-    if not clustering_path.exists():
+        #checkpoint = torch.load( root / "ok_final_checkpoint.pt", map_location="cpu")
+        chk_name_ok = "ok_checkpoint_" + str(i_epoch*100) +  ".pt"
+        checkpoint = torch.load( root / chk_name_ok, map_location="cpu")
+        net = OKNetV1(out_features=2048)
+        net.load_state_dict(checkpoint)
+
+
+        clas_name_ok = "clustering_" + str(i_epoch*100)
+        clustering_path = (root/clas_name_ok)
+
+        if not clustering_path.exists():
             clustering_path.mkdir(parents=True)
 
+        # net = net.opticalflow_net_stream
+        emb_name_ok = "embedding_dict_" + str(i_epoch*100) +  ".pkl"
+        embedding_path = clustering_path / emb_name_ok
+        if not embedding_path.exists():
+            embedding_dict = store_embeddings_in_dict(blobs_folder_path=blobs_folder_path, model=net)
+            pickle.dump(embedding_dict, open(embedding_path, "wb"))
+        else:
+            embedding_dict = pickle.load(open(embedding_path, "rb"))
+        
+        print("*************************" + str(i_epoch) + "/" + str(epochs/100)+ "*************************")
+        evaluate_model(
+            embedding_dict, blobs_folder_path=blobs_folder_path, model=net, num_clusters=10, save_embeddings=False, label="gesture"
+        )
+        evaluate_model(
+            embedding_dict, blobs_folder_path=blobs_folder_path, model=net, num_clusters=10, save_embeddings=False, label="user"
+        )
+        evaluate_model(
+            embedding_dict, blobs_folder_path=blobs_folder_path, model=net, num_clusters=10, save_embeddings=False, label="skill"
+        )
+        # evaluate_model_multidata(blobs_folder_paths_list = blobs_folder_paths_list, model = model, num_clusters = 10, save_embeddings = False)
 
-    # net = net.opticalflow_net_stream
-    embedding_path = clustering_path / "embedding_dict.pkl"
-    if not embedding_path.exists():
-        embedding_dict = store_embeddings_in_dict(blobs_folder_path=blobs_folder_path, model=net)
-        pickle.dump(embedding_dict, open(embedding_path, "wb"))
-    else:
-        embedding_dict = pickle.load(open(embedding_path, "rb"))
-    evaluate_model(
-        embedding_dict, blobs_folder_path=blobs_folder_path, model=net, num_clusters=10, save_embeddings=False, label="gesture"
-    )
-    evaluate_model(
-        embedding_dict, blobs_folder_path=blobs_folder_path, model=net, num_clusters=10, save_embeddings=False, label="user"
-    )
-    evaluate_model(
-        embedding_dict, blobs_folder_path=blobs_folder_path, model=net, num_clusters=10, save_embeddings=False, label="skill"
-    )
-    # evaluate_model_multidata(blobs_folder_paths_list = blobs_folder_paths_list, model = model, num_clusters = 10, save_embeddings = False)
-
-    if not (clustering_path/"kin_umap_gesture.png").exists():
+        if not (clustering_path/"kin_umap_gesture.png").exists():
             plot_umap_clusters(embedding_dict, clustering_path)
 
 

@@ -181,7 +181,7 @@ def main():
         root / "final_checkpoint.pt", net, optimizer
     )
 
-    embedding_path = Config.trained_models_dir / "embedding_dict.pkl"
+    embedding_path = root / "embedding_dict.pkl"
     if not embedding_path.exists():
         embedding_dict = store_embeddings_in_dict(blobs_folder_path=blobs_folder_path, model=net)
         pickle.dump(embedding_dict, open(embedding_path, "wb"))
